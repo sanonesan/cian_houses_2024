@@ -6,11 +6,17 @@ authors = ["sanonesan <ezcudze@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
-scrapy = "^2.11.2"
-beautifulsoup4 = "^4.12.3"
+python = "^3.11"
+undetected-chromedriver = "^3.5.5"
+seleniumbase = "^4.30.2"
+configparser = "^7.1.0"
+webdriver-manager = "^4.0.2"
+pandas = "^2.2.2"
 
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[virtualenvs]
+prefer-active-python = true
