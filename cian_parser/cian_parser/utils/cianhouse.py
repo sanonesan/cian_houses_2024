@@ -1,5 +1,7 @@
 import re
 
+__all__ = ["BASE_HOUSE", "CianHouse"]
+
 BASE_HOUSE = {
     "price": "unknown",
     "location": "unknown",
@@ -14,6 +16,7 @@ BASE_HOUSE = {
     "ceiling_height": "unknown",
     "view": "unknown",
     "accomodation_type": "unknown",
+    "url": "url",
 }
 
 
@@ -67,16 +70,3 @@ class CianHouse(dict):
             metro,
         )[0]
         return res
-
-    #
-    # def re_square(self, square):
-    #     pass
-    #
-    # def re_square(self, square):
-    #     pass
-    #
-    # def re_square(self, square):
-    #     pass
-    #
-    # def re_square(self, square):
-    # pass

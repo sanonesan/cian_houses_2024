@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "avito-parser"
+name = "cian-parser"
 version = "0.1.0"
 description = ""
 authors = ["sanonesan <ezcudze@gmail.com>"]
@@ -14,6 +14,7 @@ webdriver-manager = "^4.0.2"
 pandas = "^2.2.2"
 beautifulsoup4 = "^4.12.3"
 tqdm = "^4.66.5"
+loguru = "^0.7.2"
 
 
 [build-system]

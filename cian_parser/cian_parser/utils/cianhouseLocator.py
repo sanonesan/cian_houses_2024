@@ -1,8 +1,10 @@
 from selenium.webdriver.common.by import By
 
+__all__ = ["CianHouseLocator"]
 
-class LocatorCianMain:
-    """Selectors for Cian Main pages"""
+
+class CianHouseLocator:
+    """Selectors for Cian"""
 
     PAGINATION_BTNS = (By.CSS_SELECTOR, '[data-name="Pagination"]')
     NEXT_BTN = (By.LINK_TEXT, "Дальше")
@@ -12,7 +14,3 @@ class LocatorCianMain:
     URL = (By.CSS_SELECTOR, '[target="_blank"]')
 
     TITLES = (By.CSS_SELECTOR, '[data-name="CardComponent"]')
-
-
-class LocatorCianFull:
-    """Selectors for Cian detailed analysis"""
