@@ -1,16 +1,82 @@
-from typing import TypedDict, Optional
+import re
+
+BASE_HOUSE = {
+    "price": "unknown",
+    "location": "unknown",
+    "metro": "unknown",
+    "floor": "unknown",
+    "floor_count": "unknown",
+    "square": "unknown",
+    "living_square": "unknown",
+    "kitchen_square": "unknown",
+    "year": "unknown",
+    "finish_type": "unknown",
+    "ceiling_height": "unknown",
+    "view": "unknown",
+    "accomodation_type": "unknown",
+}
 
 
-class House(TypedDict):
-    price: Optional[str]
-    adress: Optional[str]
-    metro: Optional[str]
-    floor: Optional[str]
-    square: Optional[str]
-    living_square: Optional[str]
-    kitchen_square: Optional[str]
-    year: Optional[str]
-    renovation: Optional[str]
-    ceiling_height: Optional[str]
-    view: Optional[str]
-    accomodation_type: Optional[str]
+class CianHouse(dict):
+
+    def __init__(self):
+        super().__init__()
+        self.update(BASE_HOUSE)
+
+    @classmethod
+    def selector(cls, element: str):
+        if element == "Тип жилья":
+            return "accomodation_type"
+        elif element == "Общая площадь":
+            return "square"
+        elif element == "Жилая площадь":
+            return "living_square"
+        elif element == "Площадь кухни":
+            return "kitchen_square"
+        elif element == "Высота потолков":
+            return "ceiling_height"
+        elif element == "Ремонт" or element == "Отделка":
+            return "finish_type"
+        elif element == "Этаж":
+            return "floor"
+        elif element == "Год постройки" or element == "Год сдачи":
+            return "year"
+        elif element == "Вид из окон":
+            return "view"
+        else:
+            return False
+
+    def re_square(self, square: str):
+        head, _, tail = re.findall(r"(\d+,{0,}\d{0,})", square)[0].partition(",")
+        return float(head + "." + tail)
+
+    def re_ceiling(self, ceiling: str):
+        head, _, tail = re.findall(r"(\d+,{0,}\d{0,})", ceiling)[0].partition(",")
+        return float(head + "." + tail)
+
+    def re_year(self, year):
+        return int(re.findall(r"\d+", year)[0])
+
+    def re_floor(self, floor):
+        res = re.findall(r"\d+", floor)
+        return int(res[0]), int(res[1])
+
+    def re_metro(self, metro):
+        res = re.findall(
+            r"([a-zA-Zа-яА-ЯёЁ]+\s\d+\s[a-zA-Zа-яА-ЯёЁ]+|[a-zA-Zа-яА-ЯёЁ]+\s[a-zA-Zа-яА-ЯёЁ]+|[a-zA-Zа-яА-ЯёЁ]+)",
+            metro,
+        )[0]
+        return res
+
+    #
+    # def re_square(self, square):
+    #     pass
+    #
+    # def re_square(self, square):
+    #     pass
+    #
+    # def re_square(self, square):
+    #     pass
+    #
+    # def re_square(self, square):
+    # pass

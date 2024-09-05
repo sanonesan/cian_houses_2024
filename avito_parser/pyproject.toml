@@ -12,6 +12,8 @@ seleniumbase = "^4.30.2"
 configparser = "^7.1.0"
 webdriver-manager = "^4.0.2"
 pandas = "^2.2.2"
+beautifulsoup4 = "^4.12.3"
+tqdm = "^4.66.5"
 
 
 [build-system]

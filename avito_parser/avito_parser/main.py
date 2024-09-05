@@ -1,14 +1,15 @@
 import undetected_chromedriver as uc
 
-from seleniumbase import SB
 from locator import LocatorCianMain
-from house import House
+from house import CianHouse
 
-# import time
-
+from seleniumbase import Driver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 
+import bs4
+
+from tqdm import tqdm
 import pandas as pd
 
 
@@ -108,31 +109,9 @@ class CianHousesParser:
     def __init__(self, links_path) -> None:
 
         self.links = pd.read_csv(links_path)["links"].tolist()
-        # print(self.links)
+        print(self.links)
 
         pass
-
-    def __selector(self, element: str):
-        if element == "Тип жилья":
-            return "accomodation_type"
-        elif element == "Общая площадь":
-            return "square"
-        elif element == "Жилая площадь":
-            return "living_square"
-        elif element == "Площадь кухни":
-            return "kitchen_square"
-        elif element == "Высота потолков":
-            return "ceiling_height"
-        elif element == "Ремонт" or element == "Отделка":
-            return "renovation"
-        elif element == "Этаж":
-            return "floor"
-        elif element == "Год постройки" or element == "Год сдачи":
-            return "year"
-        elif element == "Вид из окон":
-            return "view"
-        else:
-            return False
 
     def __parse_link(self, url):
 
@@ -141,61 +120,147 @@ class CianHousesParser:
         #     By.CSS_SELECTOR, '[data-name="OfferTitleNew"]'
         # ).text
 
-        house = {
-            "price": "unknown",
-            "adress": "unknown",
-            "metro": "unknown",
-            "floor": "unknown",
-            "square": "unknown",
-            "living_square": "unknown",
-            "kitchen_square": "unknown",
-            "year": "unknown",
-            "renovation": "unknown",
-            "ceiling_height": "unknown",
-            "view": "unknown",
-            "accomodation_type": "unknown",
-        }
+        house = CianHouse()
+        # print(house)
 
-        elems = self.driver.find_elements(
-            By.CSS_SELECTOR, '[data-name="ObjectFactoidsItem"]'
-        )
-        for i in range(len(elems)):
-            element = str(elems[i].text).split(sep="\n")
-            if self.__selector(element[0]):
-                house[self.__selector(element[0])] = element[1]
+        page_html = self.driver.page_source
 
-        elems = self.driver.find_elements(
-            By.CSS_SELECTOR, '[data-name="OfferSummaryInfoItem"]'
-        )
+        soup = bs4.BeautifulSoup(page_html, "html.parser")
 
-        for i in range(len(elems)):
-            element = str(elems[i].text).split(sep="\n")
-            if self.__selector(element[0]):
-                if house[self.__selector(element[0])] == "unknown":
-                    house[self.__selector(element[0])] = element[1]
+        location = ""
+        try:
+            location_list = [x.text for x in soup.select("a[data-name=AddressItem]")]
+            for i in range(len(location_list)):
+                if i < len(location_list) - 1:
+                    location = location + location_list[i] + ", "
+                else:
+                    location = location + location_list[i]
+        except Exception as e:
+            print(e)
+
+        if location == "":
+            location = "unknown"
+        house["location"] = location
+
+        metro = ""
+        try:
+            metro_list = [x.text for x in soup.select("li[data-name=UndergroundItem]")]
+            metro = metro_list[0]
+        except Exception as e:
+            print(e)
+
+        if metro == "":
+            metro = "unknown"
+        house["metro"] = house.re_metro(metro)
+
+        #
+
+        price = ""
+        try:
+            price_list = soup.select("div[data-testid=price-amount]")[0].text.split()[
+                :-1
+            ]
+            for x in price_list:
+                price = price + x
+            price = int(price)
+        except Exception as e:
+            print(e)
+
+        if price == "":
+            price = "unknown"
+        house["price"] = price
+
+        try:
+            soup_span = soup.select("span")
+            for index, span in enumerate(soup_span):
+                if house.selector(span.text):
+                    house[house.selector(span.text)] = soup_span[index + 1].text
+        except Exception as e:
+            print(e)
+
+        try:
+            soup_p = soup.select("p")
+            for index, p in enumerate(soup_p):
+                if house.selector(p.text):
+                    if house[house.selector(p.text)] == "unknown":
+                        house[house.selector(p.text)] = soup_p[index + 1].text
+        except Exception as e:
+            print(e)
+
+        if house["square"] != "unknown":
+            house["square"] = house.re_square(house["square"])
+
+        if house["living_square"] != "unknown":
+            house["living_square"] = house.re_square(house["living_square"])
+
+        if house["kitchen_square"] != "unknown":
+            house["kitchen_square"] = house.re_square(house["kitchen_square"])
+
+        if house["year"] != "unknown":
+            house["year"] = house.re_year(house["year"])
+
+        if house["floor"] != "unknown":
+            house["floor"], house["floor_count"] = house.re_floor(house["floor"])
+
+        if house["ceiling_height"] != "unknown":
+            house["ceiling_height"] = house.re_ceiling(house["ceiling_height"])
 
         print(house)
+        #
+        # elems = self.driver.find_elements(By.CSS_SELECTOR, "span")
+        # for index, span in enumerate(elems):
+        #     print(index, span[index + 1].text)
+        # elems = self.driver.find_elements(
+        #     By.CSS_SELECTOR, '[data-name="ObjectFactoidsItem"]'
+        # )
+        # for i in range(len(elems)):
+        #     element = str(elems[i].text).split(sep="\n")
+        #     if self.__selector(element[0]):
+        #         house[self.__selector(element[0])] = element[1]
+
+        # elems = self.driver.find_elements(
+        #     By.CSS_SELECTOR, '[data-name="OfferSummaryInfoItem"]'
+        # )
+        #
+        # for i in range(len(elems)):
+        #     element = str(elems[i].text).split(sep="\n")
+        #     if self.__selector(element[0]):
+        #         if house[self.__selector(element[0])] == "unknown":
+        #             house[self.__selector(element[0])] = element[1]
+        #
+        # print(house)
 
         # print(name)
 
         pass
 
-    def parse(self):
-        with SB(
+    def __set_up_Driver(self):
+        self.driver = Driver(
             uc=True,
             agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-            headed=False,
             headless=True,
             page_load_strategy="eager",
             block_images=True,
-            skip_js_waits=True,
-        ) as self.driver:
-            try:
-                for url in self.links:
-                    self.__parse_link(url)
+        )
+        pass
 
-            except Exception as error:
-                print(error)
+    def parse(self):
+        # with SB(
+        #     uc=True,
+        #     agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        #     headed=False,
+        #     headless=True,
+        #     page_load_strategy="eager",
+        #     block_images=True,
+        #     skip_js_waits=True,
+        # ) as self.driver:
+        try:
+            self.__set_up_Driver()
+            for url in tqdm(self.links):
+                self.__parse_link(url)
+
+        except Exception as error:
+            print(error)
         pass
 
 
