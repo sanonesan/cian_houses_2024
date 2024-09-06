@@ -2,10 +2,13 @@ from .cianhouseLocator import CianHouseLocator
 
 import undetected_chromedriver as uc
 from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import NoSuchElementException
 
 from tqdm import tqdm
 import time
 from typing import Optional
+
+from loguru import logger
 
 
 __all__ = ["CianHouseLinkExtractor"]
@@ -32,50 +35,84 @@ class CianHouseLinkExtractor:
 
         pass
 
-    def __get_url(self):
-        self.driver.get(self.url)
-
     def __paginator(self):
         """Method for searching next page"""
 
-        try:
+        self.driver.get(self.url)
 
-            for _ in tqdm(range(self.count)):
+        next_page = "NO URL"
 
+        pbar = tqdm(range(1, self.count + 1))
+        for _ in range(self.count):
+
+            try:
                 self.__parse_page()
+                logger.success(f"Page {self.driver.current_url} parsed")
+                pbar.update(1)
 
-                # Search for pagination buttons
-                paginators = self.driver.find_element(*CianHouseLocator.PAGINATION_BTNS)
+                except_counter = 0
+                while True:
 
-                # Search for element with LINK_TEXT "Дальше"
-                # If no element with such atribute -> Exception
-                next_page = paginators.find_element(
-                    *CianHouseLocator.NEXT_BTN
-                ).get_attribute("href")
+                    try:
+                        # Search for pagination buttons
+                        paginators = self.driver.find_element(
+                            *CianHouseLocator.PAGINATION_BTNS
+                        )
+                        # Search for element with LINK_TEXT "Дальше"
+                        # If no element with such atribute -> Exception
+                        next_page = paginators.find_element(
+                            *CianHouseLocator.NEXT_BTN
+                        ).get_attribute("href")
+                        break
+                    except Exception as e:
+                        if type(e) is NoSuchElementException:
+                            except_counter += 1
+                        else:
+                            logger.critical(type(e))
+                        self.driver.refresh()
+                        logger.info("NoSuchElementException trying to refresh page")
+                        time.sleep(0.25)
+
+                        if except_counter == 2:
+                            raise e
+                        pass
 
                 self.driver.get(url=next_page)
                 time.sleep(0.25)
                 # time.sleep(1)
 
-        except Exception as error:
-            print(error)
+            except Exception as e:
+                if type(e) is NoSuchElementException:
+                    msg = f"""
+                    \bIt was the last page OR cannot find NETX_BUTTON element!
+                    \bLast visited URL: {self.driver.current_url}!
+                    """
+                    logger.warning(msg)
+                    break
+                else:
+                    logger.error(e)
+                    raise
 
         pass
 
     def __parse_page(self):
 
-        titles = self.driver.find_elements(*CianHouseLocator.TITLES)
+        try:
+            titles = self.driver.find_elements(*CianHouseLocator.TITLES)
 
-        file = open(self.csv_path, "a")
+            file = open(self.csv_path, "a")
 
-        for title in titles:
-            url = (
-                title.find_element(*CianHouseLocator.DESCRIPTION_FRAME)
-                .find_element(*CianHouseLocator.URL)
-                .get_attribute("href")
-            )
-            file.write(url + "\n")
-        file.close()
+            for title in titles:
+                url = (
+                    title.find_element(*CianHouseLocator.DESCRIPTION_FRAME)
+                    .find_element(*CianHouseLocator.URL)
+                    .get_attribute("href")
+                )
+                file.write(url + "\n")
+            file.close()
+        except Exception as e:
+            logger.error(e)
+            raise
 
         pass
 
@@ -93,8 +130,10 @@ class CianHouseLinkExtractor:
 
     def parse(self):
         try:
+            logger.trace("Start extracting links")
             self.__set_up_Driver()
-            self.__get_url()
             self.__paginator()
-        except Exception as error:
-            print(error)
+            logger.success("Links EXTRACTED")
+        except Exception as e:
+            logger.error(e)
+            raise
