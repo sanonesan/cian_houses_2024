@@ -15,6 +15,7 @@ pandas = "^2.2.2"
 beautifulsoup4 = "^4.12.3"
 tqdm = "^4.66.5"
 loguru = "^0.7.2"
+black = "^24.8.0"
 
 
 [build-system]

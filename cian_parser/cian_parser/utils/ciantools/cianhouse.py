@@ -5,6 +5,8 @@ __all__ = ["BASE_HOUSE", "CianHouse"]
 BASE_HOUSE = {
     "price": "unknown",
     "location": "unknown",
+    "geo_lat": "unknown",
+    "geo_lng": "unknown",
     "metro": "unknown",
     "floor": "unknown",
     "floor_count": "unknown",
@@ -15,7 +17,12 @@ BASE_HOUSE = {
     "finish_type": "unknown",
     "ceiling_height": "unknown",
     "view": "unknown",
+    "house_type": "unknown",
+    "heating": "unknown",
+    "breakdown": "unknown",
+    "parking": "unknown",
     "accomodation_type": "unknown",
+    "author": "unknown",
     "url": "url",
 }
 
@@ -46,6 +53,16 @@ class CianHouse(dict):
             return "year"
         elif element == "Вид из окон":
             return "view"
+        elif element == "Тип дома":
+            return "house_type"
+        elif element == "Отопление":
+            return "heating"
+        elif element == "Аварийность":
+            return "breakdown"
+        elif element == "Паковка":
+            return "parking"
+        elif element == "Застройщик":
+            return "author"
         else:
             return False
 
