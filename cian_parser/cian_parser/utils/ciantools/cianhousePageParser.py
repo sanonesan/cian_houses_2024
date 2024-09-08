@@ -4,6 +4,8 @@ import bs4
 import undetected_chromedriver as uc
 from selenium.webdriver.chrome.options import Options
 
+import random
+import re
 import csv
 import time
 from tqdm import tqdm
@@ -22,6 +24,7 @@ class CianHousePageParser:
         self,
         links_path: str,
         cian_houses_path: str,
+        cian_houses_file_name: str,
         user_agent: Optional[str] = None,
     ) -> None:
 
@@ -33,13 +36,17 @@ class CianHousePageParser:
             logger.error(e)
             raise e
 
+        # set main output CSV
         try:
             self.cian_houses_path = cian_houses_path
-            logger.trace("csvFile with houses loading...")
-            with open(self.cian_houses_path, "w") as csvFile:
+            self.cian_houses_file_name = cian_houses_file_name
+            logger.trace("csvFile with houses creating...")
+            with open(
+                self.cian_houses_path + self.cian_houses_file_name + ".csv", "w"
+            ) as csvFile:
                 wr = csv.DictWriter(csvFile, BASE_HOUSE.keys())
                 wr.writeheader()
-            logger.success("csvFile with houses loaded!")
+            logger.success("csvFile with houses created!")
         except Exception as e:
             logger.error(e)
             raise e
@@ -62,6 +69,16 @@ class CianHousePageParser:
 
             house = CianHouse()
             house["url"] = url
+
+            try:
+                latlong = re.findall(
+                    r"\d+.\d+", re.findall(r'"lat":\d+.\d+,"lng":\d+.\d+', page_html)[0]
+                )
+                house["geo_lat"] = float(latlong[0])
+                house["geo_lng"] = float(latlong[1])
+            except Exception as e:
+                logger.log("INFO", f"LAT_LONG: {e}")
+                pass
 
             location = ""
             try:
@@ -149,12 +166,16 @@ class CianHousePageParser:
                 house["ceiling_height"] = house.re_ceiling(house["ceiling_height"])
 
             # print(house)
-            if house["price"] != "unknown" or house["metro"] != "unknown":
+            if house["price"] != "unknown":
                 logger.trace(f"{house['url']} ADDING...")
-                with open(self.cian_houses_path, "a") as file:
+
+                path = self.cian_houses_path + self.cian_houses_file_name + ".csv"
+
+                with open(path, "a") as file:
                     wr = csv.DictWriter(file, house.keys())
                     wr.writerow(house)
                 logger.success(f"{house['url']} ADDED!")
+
                 break
 
             if loading_page_counter == 5:
@@ -168,44 +189,68 @@ class CianHousePageParser:
                 logger.log("INFO", f"SKIP page {house['url']}")
                 break
 
+            sleeper = random.randint(5, 15)
             logger.warning(
-                "SLEEP for 10 sec: page loading error OR request was blocked"
+                f"SLEEP for {sleeper} sec: page loading error OR request was blocked"
             )
 
-            time.sleep(10)
+            time.sleep(sleeper)
+            logger.info("Rebooting WebDriver")
+            self.driver.close()
+            self.driver.quit()
+            self.__set_up_Driver()
 
         pass
 
-    def __set_up_Driver(self):
+    def __set_up_Driver(self, proxy: Optional[str] = None):
         options = Options()
         options.page_load_strategy = "eager"
 
         if self.user_agent is not None:
             # add the custom User Agent to Chrome Options
             options.add_argument(f"--user-agent={self.user_agent}")
-        # options.add_argument("--headless")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-extensions")
-        options.add_argument("--enable-automation")
-        options.add_argument("--disable-browser-side-navigation")
-        options.add_argument("--disable-web-security")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-infobars")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--disable-setuid-sandbox")
-        options.add_argument("--disable-software-rasterizer")
+            pass
+
+        if proxy is not None:
+            options.add_argument(f"--proxy-server={proxy}")
 
         self.driver = uc.Chrome(options=options)
+        self.driver.set_window_size(800, 600)
 
         pass
 
     def parse(self):
+
         try:
             logger.trace("Start parsing links")
             self.__set_up_Driver()
-            for url in tqdm(self.links):
-                self.__parse_link(url)
+
+            pbar = tqdm(total=len(self.links))
+
+            for url in self.links:
+                err_counter = 0
+                while True:
+                    try:
+                        self.__parse_link(url)
+                        break
+                    except Exception as e:
+
+                        logger.info("Rebooting WebDriver")
+                        self.driver.close()
+                        self.driver.quit()
+                        self.__set_up_Driver()
+
+                        err_counter += 1
+                        if err_counter == 3:
+                            raise e
+
+                pbar.update(1)
+                if pbar.last_print_n % 15 == 0:
+                    logger.info("Rebooting WebDriver")
+                    self.driver.close()
+                    self.driver.quit()
+                    self.__set_up_Driver()
+
             logger.success("Links PARSED")
 
         except Exception as e:
