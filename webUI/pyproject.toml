@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "webui"
+version = "0.1.0"
+description = ""
+authors = ["sanonesan <ezcudze@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+scikit-learn = "^1.5.2"
+catboost = "^1.2.7"
+xgboost = "^2.1.1"
+lightgbm = "^4.5.0"
+pandas = "^2.2.3"
+streamlit = "^1.38.0"
+streamlit-folium = "^0.22.1"
+streamlit-plotly-mapbox-events = "^0.1.2"
+clipboard = "^0.0.4"
+st-pages = "^1.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[virtualenvs]
+prefer-active-python = true

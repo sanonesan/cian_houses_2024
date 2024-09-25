@@ -1,0 +1,9 @@
+# [[pages]]
+# path = "./streamlit_pages/pages/analytics_page.py"
+# name = "Аналитика"
+# icon = "📊"
+
+[[pages]]
+path = "./streamlit_pages/pages/prediciton_page.py"
+name = "Прогноз цены"
+icon = "📈"
